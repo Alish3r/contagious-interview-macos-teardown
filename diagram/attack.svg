@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif" role="img" aria-label="How the fake-interview macOS malware works: lure, delivery, and payload internals">
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#1c2433"/>
+    </marker>
+    <marker id="arR" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#c0392b"/>
+    </marker>
+  </defs>
+  <style>
+    .ink{fill:#1c2433} .muted{fill:#6b675d} .bad{fill:#c0392b} .amber{fill:#b45309} .teal{fill:#0e7490} .white{fill:#fff}
+    .t{font-size:13.5px;fill:#1c2433} .ts{font-size:11.5px;fill:#53504a} .h{font-size:14px;font-weight:700;fill:#1c2433}
+    .lbl{font-size:10.5px;fill:#6b675d;letter-spacing:.5px} .num{font-size:12px;font-weight:700;fill:#fff}
+    .band{font-size:13px;font-weight:700;fill:#0e7490;letter-spacing:1.5px}
+    .card{fill:#fff;stroke:#d8d2c6;stroke-width:1.2} .cardbad{fill:#fff;stroke:#c0392b;stroke-width:1.4}
+    .cardamb{fill:#fff;stroke:#b45309;stroke-width:1.4} .cardteal{fill:#fff;stroke:#0e7490;stroke-width:1.2}
+  </style>
+
+  <rect x="3" y="3" width="1194" height="894" rx="18" fill="#f7f5f0" stroke="#cfc9bd"/>
+  <text x="48" y="56" class="ink" font-size="30" font-weight="700">The fake interview that installs macOS malware</text>
+  <text x="48" y="82" class="muted" font-size="15">A "Contagious Interview" attack, caught and reverse-engineered on 2026-11-03. No exploit. It asks you to run it.</text>
+
+  <!-- BAND 1 -->
+  <text x="48" y="124" class="band">① THE LURE &amp; DELIVERY</text>
+
+  <!-- Row A cards: x grid 34,267,500,733,966  w204 h120 y142 -->
+  <g>
+    <rect x="34" y="142" width="204" height="120" rx="10" class="card"/>
+    <circle cx="58" cy="166" r="11" class="bad"/><text x="58" y="170" text-anchor="middle" class="num">1</text>
+    <text x="78" y="170" class="h">Fake recruiter</text>
+    <text x="50" y="196" class="t">"Saifuro" startup books</text>
+    <text x="50" y="214" class="t">a product-manager</text>
+    <text x="50" y="232" class="t">interview via Calendly.</text>
+    <text x="50" y="252" class="ts">Looks completely normal.</text>
+
+    <rect x="267" y="142" width="204" height="120" rx="10" class="card"/>
+    <circle cx="291" cy="166" r="11" class="bad"/><text x="291" y="170" text-anchor="middle" class="num">2</text>
+    <text x="311" y="170" class="h">The "join" link</text>
+    <text x="283" y="196" class="t">Points to</text>
+    <text x="283" y="214" class="bad" font-size="13.5" font-weight="700">talkbrave[.]org</text>
+    <text x="283" y="232" class="t">not Brave's real</text>
+    <text x="283" y="250" class="ts">talk.brave.com</text>
+
+    <rect x="500" y="142" width="204" height="120" rx="10" class="card"/>
+    <circle cx="524" cy="166" r="11" class="bad"/><text x="524" y="170" text-anchor="middle" class="num">3</text>
+    <text x="544" y="170" class="h">Fake meeting page</text>
+    <text x="516" y="196" class="t">Asks for camera + mic,</text>
+    <text x="516" y="214" class="t">like any video call.</text>
+    <text x="516" y="234" class="ts">You click "Allow".</text>
+
+    <rect x="733" y="142" width="204" height="120" rx="10" class="card"/>
+    <circle cx="757" cy="166" r="11" class="bad"/><text x="757" y="170" text-anchor="middle" class="num">4</text>
+    <text x="777" y="170" class="h">Fake error</text>
+    <text x="725" y="196" class="t">"You need the Brave</text>
+    <text x="725" y="214" class="t">Talk desktop app."</text>
+    <text x="725" y="234" class="ts">A lie, with a button.</text>
+
+    <rect x="966" y="142" width="204" height="120" rx="10" class="cardamb"/>
+    <circle cx="990" cy="166" r="11" class="amber"/><text x="990" y="170" text-anchor="middle" class="num">5</text>
+    <text x="1010" y="170" class="h">Payload</text>
+    <text x="958" y="196" class="t">A .dmg download</text>
+    <text x="958" y="214" class="t">or paste a Terminal</text>
+    <text x="958" y="232" class="amber" font-size="12.5" font-weight="700">curl … | sh</text>
+    <text x="958" y="252" class="ts">Both run the stealer.</text>
+  </g>
+  <!-- arrows A -->
+  <line x1="238" y1="202" x2="266" y2="202" stroke="#1c2433" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="471" y1="202" x2="499" y2="202" stroke="#1c2433" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="704" y1="202" x2="732" y2="202" stroke="#1c2433" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="937" y1="202" x2="965" y2="202" stroke="#1c2433" stroke-width="1.6" marker-end="url(#ar)"/>
+
+  <!-- webcam callout under card 3 -->
+  <rect x="470" y="286" width="264" height="52" rx="9" fill="#fbeae7" stroke="#c0392b" stroke-width="1.3"/>
+  <text x="602" y="309" text-anchor="middle" class="bad" font-size="12.5" font-weight="700">Secretly photographs you via webcam</text>
+  <text x="602" y="327" text-anchor="middle" class="ts">uploads the JPEG to /evidence before any malware runs</text>
+  <line x1="602" y1="286" x2="602" y2="264" stroke="#c0392b" stroke-width="1.6" marker-end="url(#arR)"/>
+
+  <!-- transition down -->
+  <line x1="1068" y1="262" x2="1068" y2="300" stroke="#b45309" stroke-width="1.8"/>
+  <path d="M1068 300 L1068 372 L600 372 L600 398" fill="none" stroke="#b45309" stroke-width="1.8" marker-end="url(#ar)"/>
+
+  <!-- BAND 2 -->
+  <text x="48" y="392" class="band">② INSIDE THE PAYLOAD  (the "installer" binary)</text>
+
+  <!-- Row B pipeline: y414 h120, 4 nodes x grid 34,325,616,907 w258 gap33 -->
+  <g>
+    <rect x="34" y="414" width="258" height="120" rx="10" class="cardbad"/>
+    <text x="50" y="442" class="h">Fake password prompt</text>
+    <text x="50" y="468" class="t">A dialog that looks like</text>
+    <text x="50" y="486" class="t">macOS asking for your</text>
+    <text x="50" y="504" class="t">login password.</text>
+    <text x="50" y="524" class="ts">AuthDialog · you type it in</text>
+
+    <rect x="325" y="414" width="258" height="120" rx="10" class="card"/>
+    <text x="341" y="442" class="h">Stash the secret</text>
+    <text x="341" y="468" class="t">Writes the password to</text>
+    <text x="341" y="486" class="ink" font-size="13" font-weight="700">~/.config/…/data.json</text>
+    <text x="341" y="506" class="ts">(both names recovered by</text>
+    <text x="341" y="524" class="ts">decrypting the binary)</text>
+
+    <rect x="616" y="414" width="258" height="120" rx="10" class="card"/>
+    <text x="632" y="442" class="h">Wrap &amp; hide</text>
+    <text x="632" y="468" class="t">base64 + zero-width</text>
+    <text x="632" y="486" class="t">characters + ChaCha</text>
+    <text x="632" y="504" class="t">encryption on the body.</text>
+    <text x="632" y="524" class="ts">so it doesn't look like data</text>
+
+    <rect x="907" y="414" width="258" height="120" rx="10" class="cardbad"/>
+    <text x="923" y="442" class="h">Phone home</text>
+    <text x="923" y="468" class="t">Sends it to the C2 over</text>
+    <text x="923" y="486" class="t">TLS that accepts ANY</text>
+    <text x="923" y="504" class="t">certificate, no cookies.</text>
+    <text x="923" y="524" class="ts">C2 host still encrypted</text>
+  </g>
+  <line x1="292" y1="474" x2="324" y2="474" stroke="#1c2433" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="583" y1="474" x2="615" y2="474" stroke="#1c2433" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="874" y1="474" x2="906" y2="474" stroke="#1c2433" stroke-width="1.6" marker-end="url(#ar)"/>
+
+  <!-- info strips -->
+  <rect x="34" y="556" width="565" height="66" rx="9" fill="#fff" stroke="#0e7490" stroke-width="1.2"/>
+  <text x="50" y="580" class="teal" font-size="12.5" font-weight="700">STAYS HIDDEN</text>
+  <text x="50" y="600" class="t">Masquerades as a "cloudsync" helper · single-instance lock ·</text>
+  <text x="50" y="617" class="t">.sh persistence · random padding so the file hash keeps changing.</text>
+
+  <rect x="616" y="556" width="549" height="66" rx="9" fill="#fff" stroke="#1c2433" stroke-width="1.2"/>
+  <text x="632" y="580" class="ink" font-size="12.5" font-weight="700">THREE LAYERS OF OBFUSCATION</text>
+  <text x="632" y="600" class="t">① compile-time string XOR (reversed)   ② ChaCha-encrypted body</text>
+  <text x="632" y="617" class="t">③ zero-width-character wrapping ;  to beat a casual `strings` triage.</text>
+
+  <!-- footer giveaway -->
+  <rect x="34" y="648" width="1131" height="92" rx="12" fill="#fdf3e3" stroke="#b45309" stroke-width="1.4"/>
+  <text x="56" y="680" class="amber" font-size="15" font-weight="700">THE ONE RULE THAT STOPS IT</text>
+  <text x="56" y="708" class="ink" font-size="15.5">A real interview never asks you to install a meeting app from an emailed link, run a Terminal command,</text>
+  <text x="56" y="730" class="ink" font-size="15.5">or type your computer password into a popup. When any of those three happens, the interview is the attack.</text>
+
+  <!-- defender + credit -->
+  <text x="48" y="772" class="teal" font-size="12.5" font-weight="700">DEFENCE</text>
+  <text x="112" y="772" class="t" font-size="12.5">block the domains · hunt with the YARA rule · rotate passwords from another device if you ran it · move crypto on a clean machine.</text>
+  <text x="48" y="800" class="muted" font-size="11.5">No software vulnerability is used ;  this is social engineering plus user-consented execution. Static analysis only; no sample executed.</text>
+
+  <line x1="48" y1="820" x2="1152" y2="820" stroke="#cfc9bd"/>
+  <text x="48" y="846" class="muted" font-size="12">Reverse-engineered by Alisher Ataev · Ghidra + radare2, offline · full teardown, IOCs and decoder in this repo</text>
+  <text x="48" y="872" class="bad" font-size="11.5" font-weight="700">talkbrave[.]org · macos.talkbrave[.]org · m.fallproject[.]com</text>
+  <text x="1152" y="872" text-anchor="end" class="muted" font-size="11">~80% match to DPRK "Contagious Interview" (Famous Chollima / BlueNoroff)</text>
+</svg>

