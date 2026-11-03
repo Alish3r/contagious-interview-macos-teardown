@@ -9,7 +9,36 @@ hunting in crypto, fintech and payments. I am publishing the teardown so others 
 detect it. The live binary is not in this repo; it is referenced by hash in [`SAMPLES.md`](SAMPLES.md).
 The web scripts are included with their domains defanged. Do not run anything here.
 
-![How the attack works](https://raw.githubusercontent.com/Alish3r/contagious-interview-macos-teardown/main/diagram/attack.png)
+```mermaid
+flowchart TB
+  subgraph LURE["1 - The lure and delivery"]
+    direction LR
+    R("Fake recruiter<br/>Saifuro - Calendly invite") --> L("Join link to<br/>talkbrave(.)org<br/>not talk.brave.com")
+    L --> P("Fake Brave Talk page<br/>asks for camera + mic")
+    P --> E("Fake error:<br/>install the desktop app")
+    E --> D("Payload:<br/>a .dmg or a curl-to-shell command")
+    P -. you click Allow .-> CAM("Secret webcam photo<br/>uploaded to /evidence")
+  end
+  D --> INST
+  subgraph PAY["2 - Inside the payload"]
+    direction LR
+    INST("installer runs") --> PW("Fake macOS<br/>password prompt")
+    PW --> J("Writes password to<br/>~/.config/.../data.json")
+    J --> W("Wraps it: string cipher +<br/>ChaCha + zero-width chars")
+    W --> C2("Beacons over TLS<br/>any cert, no cookies, to C2")
+    INST -. stays hidden .-> HIDE("Disguised as 'cloudsync'<br/>persists - random padding")
+  end
+  C2 --> RULE
+  RULE("THE RULE THAT STOPS IT<br/>A real interview never asks you to install a meeting app,<br/>run a terminal command, or type your password into a popup.<br/>When any of those happens, the interview is the attack.")
+  classDef bad fill:#fbeae7,stroke:#c0392b,color:#1c2433;
+  classDef amber fill:#fdf3e3,stroke:#b45309,color:#1c2433;
+  classDef note fill:#eef6f8,stroke:#0e7490,color:#1c2433,font-style:italic;
+  classDef step fill:#ffffff,stroke:#8a8575,color:#1c2433;
+  class L,P,PW,C2 bad;
+  class D,INST,RULE amber;
+  class CAM,HIDE note;
+  class R,E,J,W step;
+```
 
 ## The setup
 
