@@ -9,9 +9,9 @@ hunting in crypto, fintech and payments. I am publishing the teardown so others 
 detect it. The live binary is not in this repo; it is referenced by hash in [`SAMPLES.md`](SAMPLES.md).
 The web scripts are included with their domains defanged. Do not run anything here.
 
-![How the attack works](https://raw.githubusercontent.com/Alish3r/contagious-interview-macos-teardown/main/diagram/attack.png)
+![How this attack works](https://raw.githubusercontent.com/Alish3r/contagious-interview-macos-teardown/main/diagram/attack-infographic.png)
 
-*Diagram source: [`diagram/attack.d2`](diagram/attack.d2) (built with [D2](https://d2lang.com)).*
+*Infographic source: [`diagram/attack-infographic.html`](diagram/attack-infographic.html). Palette from Sanzo Wada's Dictionary of Colour Combinations.*
 
 ## The setup
 

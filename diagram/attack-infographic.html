@@ -1,0 +1,173 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;700;800&family=Tomorrow:wght@400;500;600;700&family=Orbitron:wght@600;700&family=Rajdhani:wght@600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+ /* Sanzo Wada: bg Mineral Gray + its combination partners Ivory Buff & Pompeian Red, plus greens derived from the bg hue */
+ --ground:#9fc2b2;--panel:#f5f0e3;--panel2:#ebe4d2;--ink:#1e2a25;--muted:#45574e;--faint:#5f7268;
+ --signal:#1c6a53;--sdim:rgba(28,106,83,.30);--warm:#ebd3a2;--ok:#2f7d5f;--danger:#ab2439;
+ --disp:"Unbounded",system-ui,sans-serif;--head:"Tomorrow",system-ui,sans-serif;--word:"Orbitron",sans-serif;
+ --label:"Rajdhani",sans-serif;--mono:"JetBrains Mono",monospace;--sys:-apple-system,"SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+.poster{width:1680px;background:var(--ground);color:var(--ink);font-family:var(--head);padding:0 0 60px;position:relative}
+.poster::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:.5;mix-blend-mode:multiply;
+ background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/><feColorMatrix type='saturate' values='0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.05'/></svg>")}
+.hud{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #7fab98;padding:24px 80px}
+.mark{font-family:var(--mono);font-weight:700;font-size:25px;letter-spacing:1px;color:var(--ink)}
+.mark .u{color:var(--signal)} .mark .cx{display:inline-block;width:10px;height:17px;background:var(--signal);vertical-align:-3px;margin-left:8px;border-radius:1px}
+.hudr{font-family:var(--label);font-weight:600;font-size:16px;letter-spacing:2.5px;text-transform:uppercase;color:var(--faint);display:flex;gap:16px;align-items:center}
+.flag{font-family:var(--mono);font-size:13px;letter-spacing:1px;padding:4px 10px;border:1px solid;border-radius:4px}
+.flag.ok{color:var(--signal);border-color:#4f9077;background:rgba(28,106,83,.07)}
+.hero{padding:50px 80px 16px;position:relative}
+.kick{font-family:var(--label);font-weight:700;font-size:19px;letter-spacing:4px;text-transform:uppercase;color:var(--signal);margin-bottom:20px}
+h1{font-family:var(--disp);font-weight:700;font-size:60px;line-height:1.05;letter-spacing:-.5px;max-width:1120px;color:var(--ink)}
+.lede{font-family:var(--head);font-weight:400;font-size:24px;line-height:1.5;color:var(--muted);max-width:1000px;margin-top:24px}
+.lede b{color:var(--ink);font-weight:600}.lede .r{color:var(--danger);font-weight:700}
+.corner{position:absolute;top:54px;right:80px;width:350px;border:1px solid #d6ccb2;border-radius:8px;padding:17px 20px;background:var(--panel)}
+.corner .cl{font-family:var(--label);font-weight:700;font-size:13px;letter-spacing:2px;color:var(--faint);text-transform:uppercase;margin-bottom:9px}
+.corner .cv{font-family:var(--mono);font-size:20px;line-height:1.5;color:var(--ink)}
+.corner .cv .a{color:var(--danger);font-weight:700}
+.sec{padding:0 80px;margin-top:48px}
+.sh{display:flex;align-items:center;gap:13px;margin-bottom:22px}
+.sh .bk{color:var(--signal);font-family:var(--mono);font-size:21px}
+.sh .id{font-family:var(--label);font-weight:700;font-size:18px;letter-spacing:3px;text-transform:uppercase;color:var(--signal)}
+.sh .tt{font-family:var(--head);font-weight:600;font-size:26px;color:var(--ink)}
+.sh .rl{flex:1;height:1px;background:linear-gradient(90deg,#7fab98,transparent)}
+.panel{background:var(--panel);border:1px solid #d9d0b8;border-radius:10px;position:relative}
+.br::before,.br::after{content:"";position:absolute;width:17px;height:17px;border:2px solid var(--signal);opacity:.85}
+.br::before{left:-1px;top:-1px;border-right:0;border-bottom:0;border-top-left-radius:10px}
+.br::after{right:-1px;bottom:-1px;border-left:0;border-top:0;border-bottom-right-radius:10px}
+.specimen{display:grid;grid-template-columns:640px 1fr;gap:54px;align-items:center;padding:44px 48px}
+.dlgwrap{position:relative;padding-left:16px}
+.dlgtag{position:absolute;top:-13px;left:38px;z-index:3;font-family:var(--mono);font-size:13px;letter-spacing:1px;color:#fff;background:var(--danger);padding:5px 11px;border-radius:5px}
+/* genuine macOS authorization sheet */
+.dialog{width:470px;background:linear-gradient(180deg,#fcfcfe,#eff0f2);border:.5px solid rgba(0,0,0,.24);border-radius:12px;
+ box-shadow:0 0 0 .5px rgba(0,0,0,.05),0 44px 80px -26px rgba(20,30,26,.55);padding:24px 24px 18px;
+ font-family:var(--sys);color:#1d1d1f;position:relative;-webkit-font-smoothing:antialiased}
+.mtop{display:flex;gap:17px;align-items:flex-start}
+.macicon{width:62px;height:62px;border-radius:14px;flex:0 0 auto;background:linear-gradient(160deg,#ff7a3d,#e8490c);
+ box-shadow:0 5px 12px -3px rgba(232,73,12,.5),inset 0 1px 0 rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center}
+.mttl{font-size:15px;font-weight:600;line-height:1.3;letter-spacing:-.01em;color:#1d1d1f}
+.msub{font-size:13px;line-height:1.4;color:#45454a;margin-top:5px}
+.mfields{margin-top:17px;display:grid;grid-template-columns:92px 1fr;gap:9px 12px;align-items:center}
+.mlab{font-size:13px;text-align:right;color:#1d1d1f}
+.minput{height:23px;border:1px solid #b9b9bd;border-radius:5px;background:#fff;padding:0 8px;font-size:13px;display:flex;align-items:center;color:#1d1d1f;box-shadow:inset 0 1px 1.5px rgba(0,0,0,.05)}
+.minput.pw{letter-spacing:2px}
+.minput.focus{border-color:#2c7ef8;box-shadow:0 0 0 3.5px rgba(44,126,248,.33)}
+.mcur{width:1.5px;height:15px;background:#2c7ef8;margin-left:1px}
+.mact{display:flex;justify-content:flex-end;gap:11px;margin-top:20px}
+.mbtn{min-width:76px;height:25px;border-radius:6px;font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;position:relative}
+.mbtn.cancel{background:linear-gradient(#fff,#f1f1f3);border:.5px solid #b9b9bd;color:#1d1d1f;box-shadow:0 1px 1px rgba(0,0,0,.04)}
+.mbtn.ok{background:linear-gradient(#4a93ff,#2c7ef8);border:.5px solid #1f6fe0;color:#fff;box-shadow:0 1px 2px rgba(44,126,248,.45)}
+.pin{position:absolute;width:29px;height:29px;border-radius:50%;background:var(--danger);color:#fff;font-family:var(--mono);font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center;border:2px solid var(--panel);box-shadow:0 0 0 2px var(--danger);z-index:5}
+.notes{display:flex;flex-direction:column;gap:25px}
+.note{display:grid;grid-template-columns:34px 1fr;gap:15px;align-items:start}
+.note .n{width:30px;height:30px;border-radius:50%;border:1.5px solid var(--danger);color:var(--danger);font-family:var(--mono);font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.note .tx{font-family:var(--head);font-size:21px;line-height:1.46;color:var(--muted)}
+.note .tx b{color:var(--ink);font-weight:600}.note .tx .m{font-family:var(--mono);font-size:18px;color:var(--signal)}
+.seq{display:grid;grid-template-columns:repeat(4,1fr)}
+.step{padding:24px 26px;border-left:1px solid #d9d0b8}.step:first-child{border-left:0}
+.step .k{font-family:var(--mono);font-size:15px;color:var(--signal);margin-bottom:11px}
+.step .h{font-family:var(--word);font-weight:600;font-size:18px;margin-bottom:9px;color:var(--ink)}
+.step .d{font-family:var(--head);font-size:17.5px;color:var(--muted);line-height:1.45;font-weight:400}
+.step .d b{color:var(--ink);font-weight:600}.step .d .m{font-family:var(--mono);font-size:15px;color:var(--danger)}
+.pipe{display:flex;align-items:center;flex-wrap:wrap;gap:17px;padding:30px 32px 22px}
+.pstage .pv{font-family:var(--mono);font-size:24px;color:var(--ink)}
+.pstage.s .pv{color:var(--signal);font-weight:700}.pstage.e .pv{color:var(--faint)}
+.pstage .pl{font-family:var(--mono);font-size:14px;color:var(--faint);margin-top:5px}
+.pa{color:var(--signal);font-size:22px}
+.pcap{padding:0 32px 30px;font-family:var(--head);font-size:21px;line-height:1.5;color:var(--muted);max-width:1180px;font-weight:400}
+.pcap b{color:var(--danger);font-weight:700}
+.hides{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.hide{padding:24px 26px}
+.hide .hl{font-family:var(--label);font-weight:700;font-size:14px;letter-spacing:2px;text-transform:uppercase;color:var(--danger);margin-bottom:11px}
+.hide .hh{font-family:var(--word);font-weight:600;font-size:18px;margin-bottom:9px;color:var(--ink)}
+.hide .hd{font-family:var(--head);font-size:17.5px;color:var(--muted);line-height:1.45;font-weight:400}
+.hide .hd .m{font-family:var(--mono);font-size:15px;color:var(--ink)}
+.tell{margin:50px 80px 0;border:1px solid #d9d0b8;border-left:5px solid var(--danger);border-radius:10px;background:var(--panel);padding:30px 36px}
+.tell .tl{font-family:var(--mono);font-size:15px;letter-spacing:2px;color:var(--danger);margin-bottom:13px}
+.tell .tt{font-family:var(--head);font-weight:600;font-size:28px;line-height:1.42;color:var(--ink)}
+.tell .tt u{text-decoration:none;color:var(--signal);border-bottom:2px solid var(--sdim)}
+.tell .tt .c{color:var(--danger);font-weight:700}
+.tell .car{display:inline-block;width:12px;height:25px;background:var(--signal);vertical-align:-4px;margin-left:5px}
+.foot{display:flex;justify-content:space-between;align-items:center;margin:32px 80px 0;padding-top:20px;border-top:1px solid #7fab98;font-family:var(--mono);font-size:15px;color:var(--faint)}
+.foot .mark{font-size:17px;color:var(--ink)}
+</style></head><body>
+<div class="poster">
+  <div class="hud">
+    <div class="mark">Alisher&nbsp;Ataev<span class="cx"></span></div>
+    <div class="hudr"><span>Threat teardown &nbsp;//&nbsp; DPRK "Contagious Interview" &nbsp;//&nbsp; macOS</span><span class="flag ok">[ STATIC&nbsp;ONLY ]</span></div>
+  </div>
+  <div class="hero">
+    <div class="corner"><div class="cl">Attack class</div><div class="cv">No exploit.<br>No zero-day.<br><span class="a">You</span> are the exploit.</div></div>
+    <div class="kick">A fake job interview, taken apart</div>
+    <h1>It looks like your Mac asking for your password.</h1>
+    <div class="lede">Spyware from North Korea that arrives as a job interview. It never breaks into your Mac. It simply convinces you to let it in, and you do. <span class="r">The disguise is the whole weapon.</span> Here is the entire trick, taken apart safely on a computer with no internet connection.</div>
+  </div>
+  <div class="sec">
+    <div class="sh"><span class="bk">&#10217;</span><span class="id">A</span><span class="tt">The one screen that does the damage</span><span class="rl"></span></div>
+    <div class="panel br specimen">
+      <div class="dlgwrap">
+        <div class="dlgtag">[ FAKE WINDOW ]</div>
+        <div class="dialog">
+          <div class="pin" style="left:-15px;top:30px">1</div>
+          <div class="pin" style="left:-15px;top:150px">2</div>
+          <div class="mtop">
+            <div class="macicon"><svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M12 2.2l7.1 2.9v4.8c0 4.5-3 8.6-7.1 9.9C7.9 18.5 4.9 14.4 4.9 9.9V5.1L12 2.2z" fill="#fff" fill-opacity=".96"/><path d="M8.9 11.7l2.1 2.1 4-4.2" stroke="#e8490c" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div><div class="mttl">Brave&nbsp;Talk wants to make changes.</div><div class="msub">Enter your password to allow this.</div></div>
+          </div>
+          <div class="mfields">
+            <div class="mlab">User Name:</div><div class="minput">Alisher Ataev</div>
+            <div class="mlab">Password:</div><div class="minput pw focus">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;<span class="mcur"></span></div>
+          </div>
+          <div class="mact"><div class="mbtn cancel">Cancel</div><div class="mbtn ok">OK<div class="pin" style="right:-15px;top:-13px">3</div></div></div>
+        </div>
+      </div>
+      <div class="notes">
+        <div class="note"><div class="n">1</div><div class="tx"><b>This is not a real Mac prompt.</b> The malware drew the window itself. It only has to look convincing, and it does.</div></div>
+        <div class="note"><div class="n">2</div><div class="tx">You type your <b>real Mac password</b>, the one that unlocks everything: your logins, files and accounts.</div></div>
+        <div class="note"><div class="n">3</div><div class="tx">The instant you click OK it is saved to a hidden file and sent to the attacker. <b>That one click is the whole attack.</b></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sh"><span class="bk">&#10217;</span><span class="id">B</span><span class="tt">How you got to that screen</span><span class="rl"></span></div>
+    <div class="panel seq">
+      <div class="step"><div class="k">01</div><div class="h">A recruiter</div><div class="d">"Saifuro" invites you to interview through a normal calendar link. Real-looking site, 22 open jobs.</div></div>
+      <div class="step"><div class="k">02</div><div class="h">A meeting link</div><div class="d">It opens <span class="m">talkbrave(.)org</span>, a fake copy of a real video-call website.</div></div>
+      <div class="step"><div class="k">03</div><div class="h">"Allow camera"</div><div class="d">It <b>secretly photographs you</b> through the webcam, before anything installs.</div></div>
+      <div class="step"><div class="k">04</div><div class="h">"Install the app"</div><div class="d">A fake error says you need a "desktop app" to join. That app is the spyware.</div></div>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sh"><span class="bk">&#10217;</span><span class="id">C</span><span class="tt">What it does with your password</span><span class="rl"></span></div>
+    <div class="panel br">
+      <div class="pipe">
+        <div class="pstage s"><div class="pv">hunter2</div><div class="pl">your password</div></div><span class="pa">&rarr;</span>
+        <div class="pstage"><div class="pv">scrambled</div><div class="pl">5b 49 6f 4f</div></div><span class="pa">&rarr;</span>
+        <div class="pstage"><div class="pv">scrambled again</div><div class="pl">a7 f2 1c 9e</div></div><span class="pa">&rarr;</span>
+        <div class="pstage"><div class="pv">made invisible</div><div class="pl">hidden characters</div></div><span class="pa">&rarr;</span>
+        <div class="pstage e"><div class="pv">looks like nothing</div><div class="pl">what gets sent</div></div>
+      </div>
+      <div class="pcap">It disguises your stolen password until it reads as empty text, then sends it out over a connection <b>built to trust any server, even a fake one</b>. Your Mac normally refuses to send data to a site it cannot verify. This skips that check, so the theft travels like ordinary, trusted traffic and nothing looks wrong.</div>
+    </div>
+  </div>
+  <div class="sec">
+    <div class="sh"><span class="bk">&#10217;</span><span class="id">D</span><span class="tt">How it hides once it is in</span><span class="rl"></span></div>
+    <div class="hides">
+      <div class="panel hide"><div class="hl">Disguise</div><div class="hh">Wears a name you trust</div><div class="hd">Runs as <span class="m">cloudsync</span>, so in your Mac's list of running programs it looks like a harmless sync tool.</div></div>
+      <div class="panel hide"><div class="hl">Concealment</div><div class="hh">Lives out of sight</div><div class="hd">Tucks the stolen data into a hidden folder you would never think to open.</div></div>
+      <div class="panel hide"><div class="hl">Evasion</div><div class="hh">Changes its own shape</div><div class="hd">Antivirus knows bad files by a fingerprint. This keeps rewriting itself so its fingerprint never matches.</div></div>
+    </div>
+  </div>
+  <div class="tell">
+    <div class="tl">THE ONE TELL</div>
+    <div class="tt">A real interview never asks you to <u>install a meeting app from a link</u>, <u>paste a command into the Terminal</u>, or <u>type your computer password into a popup</u>. <span class="c">The moment it does, the interview is the attack.</span><span class="car"></span></div>
+  </div>
+  <div class="foot">
+    <div>Reverse-engineered by Alisher Ataev &nbsp;//&nbsp; analysed safely, the file was never run &nbsp;//&nbsp; ~80% match: DPRK Contagious Interview</div>
+    <div class="mark" style="letter-spacing:.5px">alisher.ataev.net</div>
+  </div>
+</div>
+</body></html>
