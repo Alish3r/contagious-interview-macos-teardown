@@ -1,0 +1,46 @@
+vars: { d2-config: { layout-engine: dagre } }
+
+title: "Fake interview, real macOS malware" {
+  near: top-center
+  shape: text
+  style: { font-size: 34; bold: true; font-color: "#1c2433" }
+}
+
+flow: "" {
+  grid-rows: 2
+  grid-gap: 70
+  style: { stroke: "transparent"; fill: "transparent" }
+
+  lure: "1   The lure and delivery" {
+    direction: right
+    style: { fill: "#faf8f3"; stroke: "#c9c2b4"; font-color: "#55513f"; font-size: 17; bold: true }
+    recruiter: "Fake recruiter\n\nSaifuro startup,\nbooked via Calendly" { style: { fill: "#ffffff"; stroke: "#8a8575"; font-color: "#1c2433"; bold: false } }
+    joinlink: "Join link goes to\n\ntalkbrave(.)org\nnot talk.brave.com" { style: { fill: "#fbeae7"; stroke: "#c0392b"; font-color: "#1c2433"; bold: false } }
+    page: "Fake meeting page\n\nasks for camera\nand microphone" { style: { fill: "#fbeae7"; stroke: "#c0392b"; font-color: "#1c2433"; bold: false } }
+    err: "Fake error\n\n'install the Brave\nTalk desktop app'" { style: { fill: "#ffffff"; stroke: "#8a8575"; font-color: "#1c2433"; bold: false } }
+    payload: "Payload\n\na .dmg, or a\ncurl-to-shell command" { style: { fill: "#fdf3e3"; stroke: "#b45309"; font-color: "#1c2433"; bold: false } }
+    cam: "Secret webcam photo\nuploaded to /evidence" { style: { fill: "#eef6f8"; stroke: "#0e7490"; font-color: "#1c2433"; italic: true; bold: false } }
+    recruiter -> joinlink -> page -> err -> payload
+    page -> cam: "you click Allow" { style: { stroke: "#0e7490"; stroke-dash: 4; font-color: "#0e7490" } }
+  }
+
+  inside: "2   Inside the payload" {
+    direction: right
+    style: { fill: "#faf8f3"; stroke: "#c9c2b4"; font-color: "#55513f"; font-size: 17; bold: true }
+    inst: "installer runs" { style: { fill: "#fdf3e3"; stroke: "#b45309"; font-color: "#1c2433"; bold: false } }
+    pw: "Fake macOS\npassword prompt" { style: { fill: "#fbeae7"; stroke: "#c0392b"; font-color: "#1c2433"; bold: false } }
+    json: "Writes the password\nto ~/.config/.../data.json" { style: { fill: "#ffffff"; stroke: "#8a8575"; font-color: "#1c2433"; bold: false } }
+    wrap: "Wraps it: string cipher\n+ ChaCha + zero-width" { style: { fill: "#ffffff"; stroke: "#8a8575"; font-color: "#1c2433"; bold: false } }
+    c2: "Beacons over TLS\nany cert, no cookies, to C2" { style: { fill: "#fbeae7"; stroke: "#c0392b"; font-color: "#1c2433"; bold: false } }
+    hide: "Disguised as 'cloudsync',\npersists, random padding" { style: { fill: "#eef6f8"; stroke: "#0e7490"; font-color: "#1c2433"; italic: true; bold: false } }
+    inst -> pw -> json -> wrap -> c2
+    inst -> hide: "stays hidden" { style: { stroke: "#0e7490"; stroke-dash: 4; font-color: "#0e7490" } }
+  }
+}
+
+
+rule: "THE RULE THAT STOPS IT\nA real interview never asks you to install a meeting app from a link, run a terminal command,\nor type your computer password into a popup.   When any of those three happens, the interview is the attack." {
+  near: bottom-center
+  shape: text
+  style: { font-size: 19; bold: true; font-color: "#8a3b0b" }
+}
